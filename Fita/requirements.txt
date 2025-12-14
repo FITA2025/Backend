@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+onnxruntime
+numpy
+pillow
+jinja2
+python-multipart

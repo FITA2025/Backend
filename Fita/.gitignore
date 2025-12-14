@@ -1,0 +1,38 @@
+# 환경 변수 파일
+.env
+
+# Python 캐시 및 컴파일 파일
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# 가상환경 폴더
+venv/
+.venv/
+
+# 데이터베이스 초기화 SQL
+initial_data.sql
+initial_user.sql
+
+# Docker 관련 파일
+*.pid
+*.sock
+
+# IDE/에디터 설정 파일
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 패키지 관리
+pip-wheel-metadata/
+__pypackages__/
+
+# OS/에디터 임시 파일
+.DS_Store
+Thumbs.db

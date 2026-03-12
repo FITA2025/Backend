@@ -16,8 +16,9 @@ venv/
 .venv/
 
 # 데이터베이스 초기화 SQL
-initial_data.sql
-initial_user.sql
+db/db_data.sql
+db/db_init.sql
+db/db_user.sql
 
 # Docker 관련 파일
 *.pid

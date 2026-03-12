@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_CONN = os.getenv("DATABASE_CONN")
 
-
 engine = create_engine(DATABASE_CONN, #echo=True,
                        poolclass=QueuePool,
                        #poolclass=NullPool, # Connection Pool 사용하지 않음. 
@@ -26,17 +25,18 @@ def direct_get_conn():
         return conn
     except SQLAlchemyError as e:
         print(e)
-        raise e
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
 
 def context_get_conn():
-    # dependency injection은 기본적으로 context manager를 갖고 있음
     conn = None
     try:
         conn = engine.connect()
         yield conn
     except SQLAlchemyError as e:
         print(e)
-        raise e
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
     finally:
         if conn:
             conn.close()

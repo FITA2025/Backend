@@ -10,6 +10,8 @@ from services import fita_svc
 # about User - 로그인
 router = APIRouter(prefix="/fita", tags=["fita"])
 
+# ----- 로그인 -----
+
 @router.post("/")
 def user_login(userID: str = Form(...),
                loc: str = Form(...),

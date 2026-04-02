@@ -10,7 +10,7 @@ import random, math
 from datetime import datetime
 from services import fita_svc
 
-# about Time - 골든타임 계산, 아이템 사용 골든타임 추가, 유저 패닉 감지
+# about Time - 골든타임 계산
 router = APIRouter(prefix="/time", tags=["time"])
 
 # ----- 초기 골든타임 계산 -----

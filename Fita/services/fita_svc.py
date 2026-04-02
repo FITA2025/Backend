@@ -1,4 +1,4 @@
-from fastapi import status, Form
+from fastapi import status, Form, WebSocket
 from fastapi.exceptions import HTTPException
 from sqlalchemy import text, Connection
 from sqlalchemy.exc import SQLAlchemyError

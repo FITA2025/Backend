@@ -63,6 +63,7 @@ def ignition_search(userID: str, conn = Depends(context_get_conn)):
     
     user_loc = fita_svc.get_user_loc(conn, userID)
     ignition = fita_svc.get_loc(conn, ignition_point)
+    
     try:
         query = f"""SELECT uuid FROM anchor
         WHERE floor =:floor and anchorNUM =:anchorNUM"""

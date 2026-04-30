@@ -134,7 +134,12 @@ def update_obj(conn: Connection,
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
             conn.commit()
-            
+        
+        except SQLAlchemyError as e:
+            print(e)
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                                detail="internal server error")
+
         except SQLAlchemyError as e:
             print(e)
             conn.rollback()
@@ -156,6 +161,10 @@ def update_user(conn: Connection,
                                     detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
             conn.commit()
             
+        except SQLAlchemyError as e:
+            print(e)
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                                detail="internal server error")
         except SQLAlchemyError as e:
             print(e)
             conn.rollback()

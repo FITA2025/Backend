@@ -5,11 +5,11 @@ from schemas import fita_schemas
 from fastapi.exceptions import HTTPException
 from sqlalchemy import text, Connection
 from sqlalchemy.exc import SQLAlchemyError
-from services import fita_svc
-import random, math
-from datetime import datetime
+import random, math, asyncio
+from services import fire_func
+import traceback
 
-# about Fire - 발화 지점 랜덤 지정, 발화 지점 반환, 화재 경로 지정, 이동 불가 구간 지정
+# about Fire - 발화 지점 랜덤 지정, 화재 경로 지정
 router = APIRouter(prefix="/fire", tags=["fire"])
 
 # 전역변수
@@ -18,11 +18,10 @@ ignition_point = ""
 # ----- 발화 지점 랜덤 지정 -----
 
 @router.post("/start")
-def fire_start(conn = Depends(context_get_conn)):
+async def fire_start(conn: Connection = Depends(context_get_conn)):
     query = "SELECT uuid FROM anchor"
     result = conn.execute(text(query))
     anchors = result.fetchall() # list
-
     if not anchors:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="해당 위치는(은) 존재하지 않습니다.")
@@ -30,54 +29,52 @@ def fire_start(conn = Depends(context_get_conn)):
     sel_anchor = random.choice(anchors)
     uuid = sel_anchor[0]
     print(uuid)
-    fireDT=datetime.now()
-
-    try:
-        query = f"UPDATE anchor SET fireDT =:fireDT WHERE uuid =:uuid"
-        bind_stmt = text(query).bindparams(uuid = uuid, fireDT = fireDT)
-        result = conn.execute(bind_stmt)
-        if result.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 위치는(은) 존재하지 않습니다.")
-        global ignition_point
-        ignition_point = uuid
-        print(ignition_point)
-        conn.commit()
-            
-    except SQLAlchemyError as e:
-        print(e)
-        conn.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="요청데이터가 제대로 전달되지 않았습니다.")
-
-    return JSONResponse(content={}, status_code=status.HTTP_200_OK)
-
-# ----- 발화 지점 반환 -----
-
-@router.get("/start/{userID}")
-def ignition_search(userID: str, conn = Depends(context_get_conn)):
     global ignition_point
-    if len(ignition_point) != 36:
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"아직 화재가 시작되지 않았습니다.")
-    
-    user_loc = fita_svc.get_user_loc(conn, userID)
-    ignition = fita_svc.get_loc(conn, ignition_point)
-    
+    ignition_point = uuid
+    print(ignition_point)
+    await fire_wrapper(ignition_point)
+    return JSONResponse(content={"message" : "fire start now"}, status_code=status.HTTP_200_OK)
+
+global fire_list
+fire_list = []
+
+async def fire_wrapper(uuid: str):
+    asyncio.create_task(fire(uuid, 0))
+    print(len(asyncio.all_tasks()))
+    return JSONResponse(content ={"status": "success"}, status_code=status.HTTP_200_OK)
+
+async def fire(uuid: str, depth: int):
+    if depth > 12:
+        return
+    conn = direct_get_conn()
     try:
-        query = f"""SELECT uuid FROM anchor
-        WHERE floor =:floor and anchorNUM =:anchorNUM"""
-        bind_stmt = text(query).bindparams(floor=user_loc.floor, anchorNUM=ignition.anchorNUM)
-        result = conn.execute(bind_stmt)
-        uuid_row = result.fetchone()
-        if not uuid_row:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 위치는(은) 존재하지 않습니다.")
-        uuid_value = uuid_row[0]
+        fire_func.update_fireDT(conn, uuid)
+        if uuid not in fire_list:
+            fire_list.append(uuid)
+            print(1)
+        
+        await asyncio.sleep(24) # 24초마다 사방으로 불 확산
+        print("**:", fire_list)
+        for B_anchor in list(fire_list):
+            candidates = fire_func.get_fire_expand(conn, B_anchor)
+            print("c*:", candidates)
+            v_candidates = [c for c in candidates if c not in fire_list]
+            print(v_candidates)
+            if not v_candidates:
+                print(4)
+                if B_anchor in fire_list:
+                    fire_list.remove(B_anchor)
+                continue
+            sel_anchor = random.choice(v_candidates)
+            fire_list.append(sel_anchor)
+            print(sel_anchor, depth+1)
 
-    except SQLAlchemyError as e:
-        print(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="요청데이터가 제대로 전달되지 않았습니다.")
-
-    return JSONResponse(content = uuid_value)
+            asyncio.create_task(fire(sel_anchor, depth+1))
+        return
+    
+    except Exception as e:
+        print(f"Fire expansion error : {e}")
+        traceback.print_exc()
+    finally:
+        print("end")
+        conn.close()

@@ -29,6 +29,19 @@ guid = ["0",
         "f17a0005-0000-0000-0000-000000000009",
         "f17a0005-0000-0000-0000-000000000010"]
 
+async def fire_update(floor: list, websocket: WebSocket, conn: Connection):
+    try:
+        while True:
+            await asyncio.sleep(20)
+            fire_uuid_list = fire_func.get_fire_where(conn, floor[0])
+            await websocket.send_json({"status": 200, "fire state":fire_uuid_list, "message":"current fire update"})
+            print(fire_uuid_list)
+    except WebSocketException as e:
+        # 일반 에러
+        print(f"system error: {e}")
+        await websocket.send_json({"status": "error", "message": str(e)})
+
+
 @router.websocket("/{userID}")
 async def current_loc(websocket: WebSocket, userID: str):
     global guid
@@ -53,8 +66,12 @@ async def current_loc(websocket: WebSocket, userID: str):
         pre_uuid = pre_loc.get("uuid")
         fita_svc.update_user(conn, userID, pre_uuid)
         pre_anchor = fita_svc.get_loc(conn, pre_uuid)
+        floor_ptr = [0]
+        floor_ptr[0] = pre_anchor.floor
+        asyncio.create_task(fire_update(floor_ptr, websocket, conn))
+
         while True:
-        # 유저 패닉 감지 (12초 기준)
+        # 유저 패닉 감지 (15초 기준)
             try:
                 loc = await asyncio.wait_for(websocket.receive_json(), timeout=15.0)
                 if "uuid" not in loc:
@@ -63,10 +80,12 @@ async def current_loc(websocket: WebSocket, userID: str):
                 uuid = loc.get("uuid")
                 fita_svc.update_user(conn, userID, uuid)
                 anchor = fita_svc.get_loc(conn, uuid)
+                floor_ptr[0] = anchor.floor
 
+                # 조건 ---
                 # 화재로 인해 통행 불가
                 if anchor.fireDT == True:
-                    await websocket.send_json({"status": "warning", "fire datetime": anchor.fireDT, "message": "fire occured"})
+                    await websocket.send_json({"status": "warning", "fire datetime": anchor.fireDT, "time": "*-3","message": "fire occured"})
                 # 엘리베이터 경고
                 if anchor.anchorTYPE == "elevator":
                     await websocket.send_json({"status":"warning", "anchortype": "elevator", "message": "elevator warning"})
@@ -87,6 +106,7 @@ async def current_loc(websocket: WebSocket, userID: str):
                     else: # 위층으로
                         fire_uuid_list = fire_func.get_fire_where(conn, anchor.floor+1)
                         await websocket.send_json({"status":200, "next guid":guid[anchor.floor + 1], "fire state":fire_uuid_list, "message":"going upstair"})
+            
             except asyncio.TimeoutError:
                 # 유저 패닉 감지 시
                 # await websocket.send_json({"status": "error", "message": "user panic", "time": -10})

@@ -90,11 +90,9 @@ def get_fire_where(conn: Connection, floor: int):
         bind_stmt = text(query).bindparams(floor = floor)
         result = conn.execute(bind_stmt)
         if result.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"no fire in floor {floor}")
+            fire_uuid = []
         fire_uuid = [row[0] for row in result]
         result.close()
-        print(fire_uuid)
         return fire_uuid
         
      except SQLAlchemyError as e:

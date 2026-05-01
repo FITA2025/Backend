@@ -28,10 +28,8 @@ async def fire_start(conn: Connection = Depends(context_get_conn)):
     
     sel_anchor = random.choice(anchors)
     uuid = sel_anchor[0]
-    print(uuid)
     global ignition_point
     ignition_point = uuid
-    print(ignition_point)
     await fire_wrapper(ignition_point)
     return JSONResponse(content={"message" : "fire start now"}, status_code=status.HTTP_200_OK)
 
@@ -40,7 +38,6 @@ fire_list = []
 
 async def fire_wrapper(uuid: str):
     asyncio.create_task(fire(uuid, 0))
-    print(len(asyncio.all_tasks()))
     return JSONResponse(content ={"status": "success"}, status_code=status.HTTP_200_OK)
 
 async def fire(uuid: str, depth: int):
@@ -51,23 +48,17 @@ async def fire(uuid: str, depth: int):
         fire_func.update_fireDT(conn, uuid)
         if uuid not in fire_list:
             fire_list.append(uuid)
-            print(1)
         
         await asyncio.sleep(24) # 24초마다 사방으로 불 확산
-        print("**:", fire_list)
         for B_anchor in list(fire_list):
             candidates = fire_func.get_fire_expand(conn, B_anchor)
-            print("c*:", candidates)
             v_candidates = [c for c in candidates if c not in fire_list]
-            print(v_candidates)
             if not v_candidates:
-                print(4)
                 if B_anchor in fire_list:
                     fire_list.remove(B_anchor)
                 continue
             sel_anchor = random.choice(v_candidates)
             fire_list.append(sel_anchor)
-            print(sel_anchor, depth+1)
 
             asyncio.create_task(fire(sel_anchor, depth+1))
         return
@@ -76,5 +67,4 @@ async def fire(uuid: str, depth: int):
         print(f"Fire expansion error : {e}")
         traceback.print_exc()
     finally:
-        print("end")
         conn.close()

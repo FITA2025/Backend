@@ -117,6 +117,33 @@ def get_loc(conn: Connection, uuid: str):
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+
+def get_uuid_byNUM(conn: Connection, anchorNUM: int, floor: int):
+    try:
+        query = f"""
+            SELECT uuid from anchor
+            where anchorNUM = :anchorNUM and floor = :floor
+            """
+        stmt = text(query)
+        bind_stmt = stmt.bindparams(anchorNUM = anchorNUM, floor = floor)
+        result = conn. execute (bind_stmt)
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"해당 앵커는(은) 존재하지 않습니다.")
+        row = result.fetchone()
+        uuid = row[0]
+        result.close()
+        return uuid
+    
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
     
 def update_obj(conn: Connection,
                userID: str = Form(...), faucet: bool = Form(...),
@@ -170,3 +197,5 @@ def update_user(conn: Connection,
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="요청데이터가 제대로 전달되지 않았습니다.")
+        
+

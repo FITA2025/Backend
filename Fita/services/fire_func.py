@@ -54,11 +54,11 @@ def get_fire_expand(conn: Connection, uuid: str):
              case7 = center.anchorNUM + 16
         
         if center.anchorTYPE == "roomgate":
-             query += f"or (fireDT is NULL and (anchorTYPE = 'way' and anchorNUM = '{case7}'))"
+             query += f"or (fireDT is NULL and (nchorTYPE = 'way'a and anchorNUM = {case7}))"
         elif center.anchorTYPE == "way":
-             query += f"or (fireDT is NULL and (anchorTYPE = 'roomgate' and anchorNUM in '{case7}', '{case8}'))"
+             query += f"or (fireDT is NULL and (anchorTYPE = 'roomgate' and anchorNUM in ({case7}, {case8})))"
         stmt = text(query)
-        bind_stmt = stmt.bindparams(roomID = center.roomID, anchorNUM = center.anchorNUM, anchorTYPE = center.anchorTYPE,
+        bind_stmt = stmt.bindparams(roomID = center.roomID, anchorNUM = center.anchorNUM, anchorTYPE = center.anchorTYPE.value,
                                     case1 = center.anchorNUM - 17, case2 = center.anchorNUM +17,
                                     case3 = center.anchorNUM - 9, case4 = center.anchorNUM + 9,
                                     case5 = center.anchorNUM - 1, case6 = center.anchorNUM + 1,
@@ -81,7 +81,7 @@ def get_fire_expand(conn: Connection, uuid: str):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="data is not delivered to DB")
 
-def get_fire_where(conn: Connection, floor: int):
+def get_fire_uuid(conn: Connection, floor: int):
      try:
         query = f"""
         SELECT uuid from anchor
@@ -105,6 +105,30 @@ def get_fire_where(conn: Connection, floor: int):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="data is not delivered to DB")
 
+def get_fire_num(conn: Connection, floor: int):
+    try:
+        query = f"""
+            SELECT anchorNUM from anchor
+            where floor = :floor and fireDT IS NOT NULL
+            """
+        stmt = text(query)
+        bind_stmt = stmt.bindparams(floor = floor)
+        result = conn.execute (bind_stmt)
+
+        fire_num = [row[0] for row in result]
+        result.close()
+        return fire_num
+    
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+    
+
 def update_fireDT(conn: Connection, uuid: str = Form(...)):
     try:
             query = f"""
@@ -113,6 +137,31 @@ def update_fireDT(conn: Connection, uuid: str = Form(...)):
             where uuid = :uuid and fireDT is NULL
             """
             bind_stmt = text(query).bindparams(uuid = uuid, fireDT = datetime.datetime.now())
+            result = conn.execute(bind_stmt)
+            if result.rowcount == 0:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail=f"no anchor {uuid}")
+            conn.commit()
+
+
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="internal server error")
+    except SQLAlchemyError as e:
+            print(e)
+            conn.rollback()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="data is not delivered to DB")
+    
+def delete_fireDT(conn: Connection, uuid: str = Form(...)):
+    try:
+            query = f"""
+            UPDATE anchor
+            SET fireDT = NULL
+            where uuid = :uuid
+            """
+            bind_stmt = text(query).bindparams(uuid = uuid)
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

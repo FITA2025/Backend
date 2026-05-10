@@ -28,7 +28,7 @@ async def calculate_time(userID: str, request: Request, conn: Connection = Depen
     user_loc = fita_svc.get_user_loc(conn=conn, userID=userID)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                    detail=f"User {userID} does not exist.")
     ignition = fire_func.get_anchor(conn, fire.ignition_point)
     print(ignition)
     
@@ -66,14 +66,14 @@ async def ending(userID: str, time: int,
     obj = fita_svc.get_user_obj(conn=conn, userID=userID)
     user_obj = [k for k, v in {'faucet': obj.faucet, 'hydrant': obj.hydrant, 'extinguisher': obj.extinguisher}.items() if v is True]
     if user_loc.anchorTYPE == "exit" and time > 0 :
-        return JSONResponse(content={"status": "success", "obj":user_obj, "message": f"{user_loc.floor}층 탈출구로 대피 완료"},
+        return JSONResponse(content={"status": "success", "obj":user_obj, "message": f" You completed escape by floor {user_loc.floor}!"},
                             status_code=status.HTTP_200_OK)
     elif time == 0 :
         if user_loc.fireDT :
-            return JSONResponse(content={"status": "fail", "obj":user_obj, "message": "전신 화상으로 인한 거동 불가 및 사망, 대피 실패"},
+            return JSONResponse(content={"status": "fail", "obj":user_obj, "message": "Inability and death due to systemic burns, evacuation failure."},
                                 status_code=status.HTTP_200_OK)
         else:
-            message = choice(["의식 소실로 인한 사망, 대피 실패", "호흡 정지로 인한 사망, 대피 실패"])
+            message = choice(["Death from loss of consciousness, evacuation failure.", "Death from respiratory arrest, evacuation failure."])
             return JSONResponse(content={"status": "fail", "obj":user_obj, "message": message},
                                 status_code=status.HTTP_200_OK)
         
@@ -115,7 +115,7 @@ async def predict(websocket: WebSocket, userID: str):
         user_info = fita_svc.get_user_info(conn=conn, userID=userID)
         print(user_info)
     except HTTPException:
-        await websocket.send_json({"status": "error", "message": "Unauthorized User"})
+        await websocket.send_json({"status": "error", "message": "User {userID} is an unauthorized user."})
         active_connections.pop(userID, None)
         await websocket.close()
         return
@@ -133,8 +133,8 @@ async def predict(websocket: WebSocket, userID: str):
                 if addOBJ != preOBJ:
                     fita_svc.update_obj(conn=conn, userID=userID, faucet=addOBJ[0], hydrant=addOBJ[1], extinguisher=addOBJ[2])
                 if addOBJ == [1, 1, 1]:
-                    await websocket.send_json({"status": 200, "message": "all objects were detected"})
-                    continue # 모든 사물 감지 시 안내
+                    await websocket.send_json({"status": "success", "message": "You have already used all the objects."})
+                    continue # 모든 사물 사용 시 안내
 
             image_bytes = base64.b64decode(file["img"])
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -174,7 +174,7 @@ async def predict(websocket: WebSocket, userID: str):
                 for i in candAnchor:
                     fire_func.delete_fireDT(conn=conn, uuid=i)
 
-            await websocket.send_json({"status": 200, "obj": dOBJ, "time": time})
+            await websocket.send_json({"status": "alert", "obj": dOBJ, "time": time, "message": "Detected objects list."})
 
         
             

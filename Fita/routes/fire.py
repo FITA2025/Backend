@@ -24,21 +24,21 @@ async def fire_start(conn: Connection = Depends(context_get_conn)):
     anchors = result.fetchall() # list
     if not anchors:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="해당 위치는(은) 존재하지 않습니다.")
+                            detail=f"Anchor {uuid} does not exist.")
     
     sel_anchor = random.choice(anchors)
     uuid = sel_anchor[0]
     global ignition_point
     ignition_point = uuid
     await fire_wrapper(ignition_point)
-    return JSONResponse(content={"message" : "fire start now"}, status_code=status.HTTP_200_OK)
+    return JSONResponse(content={"message" : "Fire start now"}, status_code=status.HTTP_200_OK)
 
 global fire_list
 fire_list = []
 
 async def fire_wrapper(uuid: str):
     asyncio.create_task(fire(uuid, 0))
-    return JSONResponse(content ={"status": "success"}, status_code=status.HTTP_200_OK)
+    return JSONResponse(content ={"status": "complete"}, status_code=status.HTTP_200_OK)
 
 async def fire(uuid: str, depth: int):
     if depth > 12:

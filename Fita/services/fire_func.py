@@ -17,7 +17,7 @@ def get_anchor(conn: Connection, uuid: str = Form(...)):
 
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"no anchor {uuid}")
+                                    detail=f"Anchor {uuid} does not exist.")
             row = result.fetchone()
             anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                             anchorTYPE=row[4], fireDT=row[5])
@@ -26,12 +26,12 @@ def get_anchor(conn: Connection, uuid: str = Form(...)):
       except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="internal server error")
+                            detail="Internal Server Error was occured.")
       except SQLAlchemyError as e:
            print(e)
            conn.rollback()
            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="data is not delivered to DB")
+                                detail="Data is not delivered to DB.")
 
 def get_fire_expand(conn: Connection, uuid: str):
     try:
@@ -74,12 +74,12 @@ def get_fire_expand(conn: Connection, uuid: str):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="internal server error")
+                            detail="Internal Server Error was occured.")
     except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="data is not delivered to DB")
+                                detail="Data is not delivered to DB.")
 
 def get_fire_uuid(conn: Connection, floor: int):
      try:
@@ -98,12 +98,12 @@ def get_fire_uuid(conn: Connection, floor: int):
      except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="internal server error")
+                            detail="Internal Server Error was occured.")
      except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="data is not delivered to DB")
+                                detail="Data is not delivered to DB.")
 
 def get_fire_num(conn: Connection, floor: int):
     try:
@@ -122,11 +122,13 @@ def get_fire_num(conn: Connection, floor: int):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
-    except Exception as e:
+                            detail="Internal Server Error was occured.")
+    except SQLAlchemyError as e:
         print(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+        conn.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Data is not delivered to DB.")
+
     
 
 def update_fireDT(conn: Connection, uuid: str = Form(...)):
@@ -140,19 +142,19 @@ def update_fireDT(conn: Connection, uuid: str = Form(...)):
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"no anchor {uuid}")
+                                    detail=f"Anchor {uuid} does not exist.")
             conn.commit()
 
 
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="internal server error")
+                            detail="Internal Server Error was occured.")
     except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="data is not delivered to DB")
+                                detail="Data is not delivered to DB.")
     
 def delete_fireDT(conn: Connection, uuid: str = Form(...)):
     try:
@@ -165,16 +167,16 @@ def delete_fireDT(conn: Connection, uuid: str = Form(...)):
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"no anchor {uuid}")
+                                    detail=f"Anchor {uuid} does not exist.")
             conn.commit()
 
 
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="internal server error")
+                            detail="Internal Server Error was occured.")
     except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="data is not delivered to DB")
+                                detail="Data is not delivered to DB.")

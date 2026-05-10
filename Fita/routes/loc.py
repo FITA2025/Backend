@@ -35,7 +35,7 @@ async def fire_update(floor: list, websocket: WebSocket, conn: Connection):
         while True:
             await asyncio.sleep(20)
             floor[1] = fire_func.get_fire_uuid(conn, floor[0]) # floor 포인터 처리
-            await websocket.send_json({"status": 200, "fire state":floor[1], "message":"current fire update"})
+            await websocket.send_json({"status": "fire update", "fire state":floor[1], "message":"current fire is now updated."})
     except WebSocketException as e:
         # 일반 에러
         print(f"system error: {e}")
@@ -60,7 +60,7 @@ def user_goal(floor: int, anchorNUM: int, conn:Connection):
         elif floor == 5: # 5층
             for i in (35, anchorNUM): # 사용자보다 출구에 가까운 앵커에서 불이 났을 경우 반대편 계단으로 -> 1층
                 if i in fire_num:
-                    return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=67, floor=5)
+                    return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=79, floor=5)
             return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=99, floor=5)
         elif floor == 4 or floor == 3:
             if anchorNUM == 67 or anchorNUM == 79: # 좌측 계단 이용 시 5층 -> 1층 안내
@@ -87,17 +87,17 @@ def user_goal(floor: int, anchorNUM: int, conn:Connection):
                     if i in fire_num:
                         return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=79, floor=floor-1)
                 return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=68, floor=floor-1)
-            if floor == 1:
-                if anchorNUM in [51, 52, 53, 67, 79]:
-                    return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=99, floor=1)
-                else:
-                    return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=98, floor=1)
+        elif floor == 1:
+            if anchorNUM in [51, 52, 53, 67, 79]:
+                return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=99, floor=1)
+            else:
+                return fita_svc.get_uuid_byNUM(conn=conn, anchorNUM=98, floor=1)
             
 
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
 
 @router.websocket("/{userID}")
 async def current_loc(websocket: WebSocket, userID: str):
@@ -111,7 +111,7 @@ async def current_loc(websocket: WebSocket, userID: str):
         user_info = fita_svc.get_user_info(conn=conn, userID=userID)
         print(user_info)
     except HTTPException:
-        await websocket.send_json({"status": "error", "message": "Unauthorized User"})
+        await websocket.send_json({"status": "error", "message": "User {userID} is an unauthorized user."})
         active_connections.pop(userID, None)
         await websocket.close()
         return
@@ -136,7 +136,7 @@ async def current_loc(websocket: WebSocket, userID: str):
             try:
                 new_loc = await asyncio.wait_for(websocket.receive_json(), timeout=15.0)
                 if "uuid" not in new_loc:
-                        await websocket.send_json({"status": "error", "message": "no data"})
+                        await websocket.send_json({"status": "error", "message": "You need to send your current location."})
                         continue
                 new_uuid = new_loc.get("uuid")
                 new_goalDist = new_loc.get("goalDist")
@@ -148,24 +148,27 @@ async def current_loc(websocket: WebSocket, userID: str):
                 # 조건 ---
                 # 화재로 인해 통행 불가
                 if anchor.fireDT == True:
-                    await websocket.send_json({"status": "warning", "time": choice(-10, -20),"message": "fire occured"})
+                    await websocket.send_json({"status": "alert", "time": choice([-10, -20]),"goal":goal, "message": "Fire is now occured."})
                 # 엘리베이터 경고
                 if anchor.anchorTYPE == "elevator":
-                    await websocket.send_json({"status":"warning", "message": "elevator warning"})
+                    await websocket.send_json({"status":"alert", "time":0, "goal" : goal, "message": "elevator warning"})
                 
                 if anchor.anchorTYPE == "way":
                     new_goal = user_goal(conn=conn, floor=anchor.floor, anchorNUM=anchor.anchorNUM)
+                    
                     if anchor.floor > 6 and anchor.floor > floor_ptr[0]:
-                        await websocket.send_json({"status":"warning", "goal": goal, "message": f"you are out of the path: go downstairs"})
+                        await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"You are out of the path: go downstairs."})
                     if goal != new_goal:
                         goal = new_goal
-                        await websocket.send_json({"status":"success", "goal": goal, "message": f"goal anchor is changed {goal} to {new_goal}"})
-                    elif goalDist < new_loc.get("goalDist"):
-                        await websocket.send_json({"status":"warning", "goal": goal, "message": f"you are out of the path: distance increased"})
+                        await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"Goal anchor is changed {goal} to {new_goal}."})
+                    elif goalDist < new_goalDist :
+                        await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"You are out of the path: distance has increased."})
+                    
+                    gaolDist = new_goalDist # goalDist 갱신
 
                 # 대피 완료 판단
                 if anchor.anchorTYPE == "exit":
-                    await websocket.send_json({"status":200, "message": "excape success"})
+                    await websocket.send_json({"status":"success", "message": "You completed escape!"})
                     await websocket.close()
                     break
                 
@@ -174,10 +177,12 @@ async def current_loc(websocket: WebSocket, userID: str):
                     if anchor.floor != floor_ptr[0]: # 위층에서 아래층으로 내려올 때
                         floor_ptr[0] = anchor.floor
                         fire_uuid_list = fire_func.get_fire_uuid(conn, anchor.floor)
-                        await websocket.send_json({"status":200, "next guid":guid[anchor.floor], "fire state":fire_uuid_list, "message":"going downstair"})
+                        await websocket.send_json({"status":"guid update", "next guid":guid[anchor.floor], "goal": goal,
+                                                   "fire state":fire_uuid_list, "message":"You are going downstair."})
                     else: # 위층으로
                         fire_uuid_list = fire_func.get_fire_uuid(conn, anchor.floor+1)
-                        await websocket.send_json({"status":200, "next guid":guid[anchor.floor + 1], "fire state":fire_uuid_list, "message":"going upstair"})
+                        await websocket.send_json({"status":"guid update", "next guid":guid[anchor.floor + 1], "goal": goal,
+                                                   "fire state":fire_uuid_list, "message":"You are going upstair."})
             
             except asyncio.TimeoutError:
                 # 유저 패닉 감지 시
@@ -186,7 +191,7 @@ async def current_loc(websocket: WebSocket, userID: str):
                 if trial < 3:
                     continue
                 else:
-                    await websocket.send_json({"status": "warning", "message": "user panic three times"})
+                    await websocket.send_json({"status": "alert", "time": -10, "goal":goal, "message": "You are panic three times."})
                     # active_connections.pop(userID, None)
                     # await websocket.close()
                     # break

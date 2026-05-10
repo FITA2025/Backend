@@ -16,7 +16,7 @@ def get_user_info(conn: Connection, userID: str):
         
         if result.rowcount == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                detail=f"User {userID} does not exist.")
 
         row = result.fetchone()
         user = User(userID=row[0], age=row[1], loc=row[2])
@@ -26,11 +26,11 @@ def get_user_info(conn: Connection, userID: str):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+                            detail="Service went wrong.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
     
 def get_user_obj(conn: Connection, userID: str):
     try:
@@ -44,7 +44,7 @@ def get_user_obj(conn: Connection, userID: str):
         
         if result.rowcount == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                detail=f"User {userID} does not exist.")
 
         row = result.fetchone()
         obj = Object(userID=row[0], faucet=row[1], hydrant=row[2], extinguisher=row[3])
@@ -54,11 +54,11 @@ def get_user_obj(conn: Connection, userID: str):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+                            detail="Service went wrong.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
     
 def get_user_loc(conn: Connection, userID: str):
     try:
@@ -73,7 +73,7 @@ def get_user_loc(conn: Connection, userID: str):
         
         if result.rowcount == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                detail=f"User {userID} does not exist.")
 
         row = result.fetchone()
         loc = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
@@ -84,16 +84,16 @@ def get_user_loc(conn: Connection, userID: str):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+                            detail="Service went wrong.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
     
 def get_loc(conn: Connection, uuid: str):
     try:
         query = """
-            SELECT * FROM anchor
+            SELECT * FROM Anchor
             WHERE uuid = :uuid
             """
         stmt = text(query)
@@ -102,21 +102,40 @@ def get_loc(conn: Connection, uuid: str):
 
         if result.rowcount == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 id {uuid}는(은) 존재하지 않습니다.")
+                                detail=f"Anchor {uuid} does not exist.")
+        row = result.fetchone()
+        anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
+                     anchorTYPE=row[4], fireDT=row[5])
+
+        if anchor.anchorNUM == 80:
+            query = f"""
+            SELECT * FROM Anchor
+            WHERE anchorNUM = 68 and floor = {anchor.floor}
+            """
+        elif anchor.anchorNUM == 81:
+            query = f"""
+            SELECT * FROM Anchor
+            WHERE anchorNUM = 79 and floor = {anchor.floor}
+            """
+        result = conn.execute(text(query))
+        if result.rowcount == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Data does not exist.")
         row = result.fetchone()
         anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                      anchorTYPE=row[4], fireDT=row[5])
         result.close()
+
         return anchor
     
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+                            detail="Service went wrong.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
 
 def get_uuid_byNUM(conn: Connection, anchorNUM: int, floor: int):
     try:
@@ -130,7 +149,7 @@ def get_uuid_byNUM(conn: Connection, anchorNUM: int, floor: int):
 
         if result.rowcount == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"해당 앵커는(은) 존재하지 않습니다.")
+                                detail=f"Anchor {uuid} does not exist.")
         row = result.fetchone()
         uuid = row[0]
         result.close()
@@ -139,11 +158,11 @@ def get_uuid_byNUM(conn: Connection, anchorNUM: int, floor: int):
     except SQLAlchemyError as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+                            detail="Service went wrong.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="알 수 없는 이유로 서비스 오류가 발생하였습니다.")
+                            detail="Internal Server Error was occured.")
     
 def update_obj(conn: Connection,
                userID: str = Form(...), faucet: bool = Form(...),
@@ -159,19 +178,19 @@ def update_obj(conn: Connection,
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                    detail=f"User {userID} does not exist.")
             conn.commit()
         
         except SQLAlchemyError as e:
             print(e)
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                                detail="internal server error")
+                                detail="Service went wrong.")
 
         except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="요청데이터가 제대로 전달되지 않았습니다.")
+                                detail="Data is not delivered to DB.")
         
 def update_user(conn: Connection,
                 userID: str = Form(...), loc: str = Form(...)):
@@ -185,17 +204,17 @@ def update_user(conn: Connection,
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"해당 id {userID}는(은) 존재하지 않습니다.")
+                                    detail=f"User {userID} does not exist.")
             conn.commit()
             
         except SQLAlchemyError as e:
             print(e)
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                                detail="internal server error")
+                                detail="Service went wrong.")
         except SQLAlchemyError as e:
             print(e)
             conn.rollback()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="요청데이터가 제대로 전달되지 않았습니다.")
+                                detail="Data is not delivered to DB.")
         
 

@@ -175,7 +175,7 @@ async def predict(websocket: WebSocket, userID: str):
                     fire_func.delete_fireDT(conn=conn, uuid=i)
 
             await websocket.send_json({"status": "alert", "obj": dOBJ, "time": time, "message": "Detected objects list."})
-            print("time.py: ", userID, "obj", dOBJ, time, " / img - ", img[0, 8], uuid)
+            print("time.py: ", userID, "obj", dOBJ, time, " / img - ", file[img][0, 8], uuid)
         
             
     except WebSocketDisconnect:

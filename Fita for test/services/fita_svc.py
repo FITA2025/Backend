@@ -13,12 +13,11 @@ def get_user_info(conn: Connection, userID: str):
         stmt = text(query)
         bind_stmt = stmt.bindparams(id=userID)
         result = conn.execute(bind_stmt)
-        
-        if result.rowcount == 0:
+        row = result.fetchone()        
+        if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User {userID} does not exist.")
 
-        row = result.fetchone()
         user = User(userID=row[0], age=row[1], loc=row[2])
         result.close()
         return user
@@ -41,12 +40,11 @@ def get_user_obj(conn: Connection, userID: str):
         stmt = text(query)
         bind_stmt = stmt.bindparams(id=userID)
         result = conn.execute(bind_stmt)
-        
-        if result.rowcount == 0:
+        row = result.fetchone()        
+        if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User {userID} does not exist.")
 
-        row = result.fetchone()
         obj = Object(userID=row[0], faucet=row[1], hydrant=row[2], extinguisher=row[3])
         result.close()
         return obj
@@ -70,12 +68,11 @@ def get_user_loc(conn: Connection, userID: str):
         stmt = text(query)
         bind_stmt = stmt.bindparams(id=userID)
         result = conn.execute(bind_stmt)
-        
-        if result.rowcount == 0:
+        row = result.fetchone()
+        if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User {userID} does not exist.")
 
-        row = result.fetchone()
         loc = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                      anchorTYPE=row[4], fireDT=row[5])
         result.close()
@@ -92,34 +89,36 @@ def get_user_loc(conn: Connection, userID: str):
     
 def get_loc(conn: Connection, uuid: str):
     try:
-        query = """
-            SELECT * FROM Anchor
+        print(uuid)
+        query = f"""
+            SELECT * FROM anchor
             WHERE uuid = '{uuid}'
             """
-        result = conn.execute(text(query))
-
-        if result.rowcount == 0:
+        stmt = text(query)
+        #bind_stmt = stmt.bindparams(uuid = uuid)
+        result = conn.execute(stmt)
+        row = result.fetchone()
+        if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Anchor {uuid} does not exist.")
-        row = result.fetchone()
         anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                      anchorTYPE=row[4], fireDT=row[5])
 
         if anchor.anchorNUM == 80:
             query = f"""
-            SELECT * FROM Anchor
+            SELECT * FROM anchor
             WHERE anchorNUM = 68 and floor = {anchor.floor}
             """
         elif anchor.anchorNUM == 81:
             query = f"""
-            SELECT * FROM Anchor
+            SELECT * FROM anchor
             WHERE anchorNUM = 79 and floor = {anchor.floor}
             """
         result = conn.execute(text(query))
-        if result.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Data does not exist.")
         row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Anchor {uuid} does not exist.")
         anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                      anchorTYPE=row[4], fireDT=row[5])
         result.close()
@@ -144,11 +143,12 @@ def get_uuid_byNUM(conn: Connection, anchorNUM: int, floor: int):
         stmt = text(query)
         bind_stmt = stmt.bindparams(anchorNUM = anchorNUM, floor = floor)
         result = conn. execute (bind_stmt)
-
-        if result.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Anchor {uuid} does not exist.")
         row = result.fetchone()
+
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Anchor does not exist.")
+       
         uuid = row[0]
         result.close()
         return uuid

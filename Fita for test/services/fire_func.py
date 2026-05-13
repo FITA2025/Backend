@@ -14,11 +14,10 @@ def get_anchor(conn: Connection, uuid: str = Form(...)):
             stmt = text(query)
             bind_stmt = stmt.bindparams(uuid = uuid)
             result = conn.execute(bind_stmt)
-
-            if result.rowcount == 0:
+            row = result.fetchone()
+            if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"Anchor {uuid} does not exist.")
-            row = result.fetchone()
             anchor = Anchor(uuid=row[0], floor=row[1], roomID=row[2], anchorNUM=row[3],
                             anchorTYPE=row[4], fireDT=row[5])
             result.close()

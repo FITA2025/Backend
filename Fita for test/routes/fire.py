@@ -13,7 +13,7 @@ import traceback
 router = APIRouter(prefix="/fire", tags=["fire"])
 
 # 전역변수
-ignition_point = ""
+ignition_point = "9f2b78f2-17e0-3c77-a964-ca447c7f1c5c"
 
 # ----- 발화 지점 랜덤 지정 -----
 
@@ -37,7 +37,7 @@ global fire_list
 fire_list = []
 
 async def fire_wrapper(uuid: str):
-    asyncio.create_task(fire(uuid, 0))
+    await asyncio.create_task(fire(uuid, 0))
     return JSONResponse(content ={"status": "complete"}, status_code=status.HTTP_200_OK)
 
 async def fire(uuid: str, depth: int):

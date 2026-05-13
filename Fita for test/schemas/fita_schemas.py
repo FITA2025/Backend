@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 # anchor Type
 class AnchorType(str, Enum):
@@ -18,7 +19,7 @@ class Anchor(BaseModel):
     roomID: str = Field(..., min_length=5, max_length=7)
     anchorNUM: int = Field(..., ge=0, le=99)
     anchorTYPE: AnchorType
-    fireDT: datetime | None = Field(default=None)
+    fireDT: Optional[datetime] = Field(default=None)
 
 # user
 class User(BaseModel):

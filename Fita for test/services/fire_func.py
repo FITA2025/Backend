@@ -9,11 +9,10 @@ def get_anchor(conn: Connection, uuid: str = Form(...)):
       try:
             query = f"""
             SELECT * from anchor
-            WHERE uuid = :uuid
+            WHERE uuid = '{uuid}'
             """
-            stmt = text(query)
-            bind_stmt = stmt.bindparams(uuid = uuid)
-            result = conn.execute(bind_stmt)
+            
+            result = conn.execute(text(query))
             row = result.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -135,13 +134,12 @@ def update_fireDT(conn: Connection, uuid: str = Form(...)):
             query = f"""
             UPDATE anchor
             SET fireDT = :fireDT
-            where uuid = :uuid and fireDT is NULL
+            where uuid = '{uuid}' and fireDT is NULL
             """
-            bind_stmt = text(query).bindparams(uuid = uuid, fireDT = datetime.datetime.now())
+            bind_stmt = text(query).bindparams(fireDT = datetime.datetime.now())
             result = conn.execute(bind_stmt)
             if result.rowcount == 0:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"Anchor {uuid} does not exist.")
+                print("already updated")
             conn.commit()
 
 
@@ -160,10 +158,10 @@ def delete_fireDT(conn: Connection, uuid: str = Form(...)):
             query = f"""
             UPDATE anchor
             SET fireDT = NULL
-            where uuid = :uuid
+            where uuid = '{uuid}'
             """
-            bind_stmt = text(query).bindparams(uuid = uuid)
-            result = conn.execute(bind_stmt)
+            
+            result = conn.execute(text(query))
             if result.rowcount == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"Anchor {uuid} does not exist.")

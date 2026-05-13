@@ -48,23 +48,23 @@ async def fire(uuid: str, depth: int):
         fire_func.update_fireDT(conn, uuid)
         if uuid not in fire_list:
             fire_list.append(uuid)
-    finally:
-        conn.close()
-    
-    conn = direct_get_conn()
-    await asyncio.sleep(24) # 24초마다 사방으로 불 확산
+    except Exception as e :
+        print(f"Update error: {e}")
+    await asyncio.sleep(16) # 24초마다 사방으로 불 확산
     try:
-        for B_anchor in list(fire_list):
-            candidates = fire_func.get_fire_expand(conn, B_anchor)
-            v_candidates = [c for c in candidates if c not in fire_list]
-            if not v_candidates:
-                if B_anchor in fire_list:
-                    fire_list.remove(B_anchor)
-                continue
-            sel_anchor = random.choice(v_candidates)
-            fire_list.append(sel_anchor)
-            if fire_list:
-                return
+        with direct_get_conn() as conn:
+            for B_anchor in list(fire_list):
+                fire_func.update_fireDT(conn, B_anchor)
+                candidates = fire_func.get_fire_expand(conn, B_anchor)
+                v_candidates = [c for c in candidates if c not in fire_list]
+                if not v_candidates:
+                    if B_anchor in fire_list:
+                        fire_list.remove(B_anchor)
+                    continue
+                sel_anchor = random.choice(v_candidates)
+                fire_list.append(sel_anchor)
+                if not fire_list:
+                    return
 
             asyncio.create_task(fire(sel_anchor, depth+1))
         return
@@ -72,5 +72,3 @@ async def fire(uuid: str, depth: int):
     except Exception as e:
         print(f"Fire expansion error : {e}")
         traceback.print_exc()
-    finally:
-        conn.close()

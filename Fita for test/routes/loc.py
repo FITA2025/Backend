@@ -30,17 +30,21 @@ guid = ["0",
         "f17a0005-0000-0000-0000-000000000009",
         "f17a0005-0000-0000-0000-000000000010"]
 
-async def fire_update(floor: list, websocket: WebSocket, conn: Connection):
+async def fire_update(floor: list, websocket: WebSocket):
     try:
         while True:
             await asyncio.sleep(20)
-            intfloor = floor[0]
-            floor[1] = fire_func.get_fire_uuid(conn, intfloor) # floor 포인터 처리
+            with direct_get_conn() as conn:
+                intfloor = floor[0]
+                floor[1] = fire_func.get_fire_uuid(conn, intfloor) # floor 포인터 처리
             await websocket.send_json({"status": "fire update", "fire state":floor[1], "message":"current fire is now updated."})
     except WebSocketException as e:
         # 일반 에러
         print(f"system error: {e}")
-        await websocket.send_json({"status": "error", "message": str(e)})
+        try:
+            await websocket.send_json({"status": "error", "message": str(e)})
+        except:
+            pass
 
 def user_goal(floor: int, anchorNUM: int, conn:Connection):
     try:
@@ -129,7 +133,7 @@ async def current_loc(websocket: WebSocket, userID: str):
         goal = "01936d4a-5254-2da6-c01b-b3f5ee8d4ce4"
         if anchor.anchorTYPE == "way":
             goal = user_goal(conn=conn, floor=anchor.floor, anchorNUM=anchor.anchorNUM)
-        asyncio.create_task(fire_update(floor_ptr, websocket, conn))
+        asyncio.create_task(fire_update(floor_ptr, websocket))
 
         while True:
         # 유저 패닉 감지 (15초 기준)
@@ -160,7 +164,7 @@ async def current_loc(websocket: WebSocket, userID: str):
                         await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"You are out of the path: go downstairs."})
                     if goal != new_goal:
                         goal = new_goal
-                        await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"Goal anchor is changed {goal} to {new_goal}."})
+                        await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"Goal anchor is changed."})
                     elif goalDist < new_goalDist :
                         await websocket.send_json({"status":"alert", "time":0, "goal": goal, "message": f"You are out of the path: distance has increased."})
                     
@@ -185,7 +189,7 @@ async def current_loc(websocket: WebSocket, userID: str):
                         await websocket.send_json({"status":"guid update", "next guid":guid[anchor.floor + 1], "goal": goal,
                                                    "fire state":fire_uuid_list, "message":"You are going upstair."})
            
-                print("loc.py: ", userID, "fire", floor_ptr, "/", time, goalDist, "m /")
+                print("loc.py: ", userID, "fire", floor_ptr, "/", "m /")
 
             except asyncio.TimeoutError:
                 # 유저 패닉 감지 시

@@ -155,10 +155,7 @@ async def predict(websocket: WebSocket, userID: str):
 
             # 감지 사물은 모두 반환, 물수건 +20/hydrant는 유저 주변 앵커 3개 fireDT 초기화, extitnguisher는 유저 주변 앵커 2개 fireDT 초기화
             time = 0 # 사용시간 기본 고려
-            if dOBJ[0] == 1:
-                time += 20
             if dOBJ[1] == 1:
-                time += 10
                 user_info = fita_svc.get_user_info(conn=conn, userID=userID)
                 candAnchor = fire_func.get_fire_expand(conn=conn, uuid=user_info.loc)
                 if len(candAnchor) > 3:
@@ -166,7 +163,6 @@ async def predict(websocket: WebSocket, userID: str):
                 for i in candAnchor:
                     fire_func.delete_fireDT(conn=conn, uuid=i)
             if dOBJ[2] == 1:
-                time += 10
                 user_info = fita_svc.get_user_info(conn=conn, userID=userID)
                 candAnchor = fire_func.get_fire_expand(conn=conn, uuid=user_info.loc)
                 if len(candAnchor) > 2:
@@ -175,7 +171,7 @@ async def predict(websocket: WebSocket, userID: str):
                     fire_func.delete_fireDT(conn=conn, uuid=i)
 
             await websocket.send_json({"status": "alert", "obj": dOBJ, "time": time, "message": "Detected objects list."})
-            print("time.py: ", userID, "obj", dOBJ, time, " / img - ", file[img][0, 8], uuid)
+            print("time.py: ", userID, "obj", dOBJ, time)
         
             
     except WebSocketDisconnect:

@@ -120,16 +120,30 @@ async def predict(websocket: WebSocket, userID: str):
         await websocket.close()
         return
     try:
+        pre_file = await websocket.receive_json()
+        pre_uOBJ = pre_file["obj"]
         while True:
             file = await websocket.receive_json()
             uOBJ = file["obj"] # 유저가 사용했다고 전송한 사물 리스트
-            if uOBJ != [0, 0, 0]: # 사용했다고 전송이 됐을 때만 DB와 비교해 업데이트
-                DBOBJ = fita_svc.get_user_obj(conn=conn, userID=userID)
-                preOBJ = [DBOBJ.faucet, DBOBJ.hydrant, DBOBJ.extinguisher] # DB에 저장된 유저가 이미 사용한 사물 리스트
-                addOBJ = [0 if (uOBJ[i]==0 and preOBJ[i]==False) else 1 for i in range(3)]
-
-                if addOBJ != preOBJ:
-                    fita_svc.update_obj(conn=conn, userID=userID, faucet=addOBJ[0], hydrant=addOBJ[1], extinguisher=addOBJ[2])
+            if uOBJ != pre_uOBJ : # 사용횟수가 추가 됐을 때만 DB와 비교해 업데이트
+                db = fita_svc.get_user_obj(conn=conn, userID=userID)
+                dbOBJ = [db.faucet, db.hydrant, db.extinguisher] # DB에 저장된 유저가 이미 사용한 사물 리스트
+                useOBJ = [0 if (uOBJ[i]<pre_uOBJ[i] and dbOBJ[i]==False) else 1 for i in range(3)]
+                if useOBJ != dbOBJ:
+                    fita_svc.update_obj(conn=conn, userID=userID, faucet=useOBJ[0], hydrant=useOBJ[1], extinguisher=useOBJ[2])
+                if uOBJ[1]>pre_uOBJ[1]:
+                    candAnchor = fire_func.get_fire_expand(conn=conn, uuid=file["uuid"])
+                    if len(candAnchor) > 2:
+                        candAnchor = sample(candAnchor, 2)
+                    for i in candAnchor:
+                        fire_func.delete_fireDT(conn=conn, uuid=i)
+                if uOBJ[2]>pre_uOBJ[2]:
+                    candAnchor = fire_func.get_fire_expand(conn=conn, uuid=file["uuid"])
+                    if len(candAnchor) > 3:
+                        candAnchor = sample(candAnchor, 3)
+                    for i in candAnchor:
+                        fire_func.delete_fireDT(conn=conn, uuid=i)
+                pre_uOBJ = uOBJ #pre_uOBJ 갱신
                 # if addOBJ == [1, 1, 1]:
                     # await websocket.send_json({"status": "success", "message": "You have already used all the objects."})
                     # continue # 모든 사물 사용 시 안내
@@ -152,26 +166,12 @@ async def predict(websocket: WebSocket, userID: str):
                 if confidence >= 0.8:
                     if class_id < len(dOBJ):
                         dOBJ[class_id] = 1
+            await websocket.send_json({"status": "alert", "obj": dOBJ, "time": 0, "message": "Detected objects list."})
+        
 
             # 감지 사물은 모두 반환, 물수건 +20/hydrant는 유저 주변 앵커 3개 fireDT 초기화, extitnguisher는 유저 주변 앵커 2개 fireDT 초기화
-            time = 0 # 사용시간 기본 고려
-            if dOBJ[1] == 1:
-                user_info = fita_svc.get_user_info(conn=conn, userID=userID)
-                candAnchor = fire_func.get_fire_expand(conn=conn, uuid=user_info.loc)
-                if len(candAnchor) > 3:
-                    candAnchor = sample(candAnchor, 3)
-                for i in candAnchor:
-                    fire_func.delete_fireDT(conn=conn, uuid=i)
-            if dOBJ[2] == 1:
-                user_info = fita_svc.get_user_info(conn=conn, userID=userID)
-                candAnchor = fire_func.get_fire_expand(conn=conn, uuid=user_info.loc)
-                if len(candAnchor) > 2:
-                    candAnchor = sample(candAnchor, 2)
-                for i in candAnchor:
-                    fire_func.delete_fireDT(conn=conn, uuid=i)
-
-            await websocket.send_json({"status": "alert", "obj": dOBJ, "time": time, "message": "Detected objects list."})
-            print("time.py: ", userID, "obj", dOBJ, time)
+            # 사용시간 기본 고려
+            print("time.py: ", userID, "obj", dOBJ)
         
             
     except WebSocketDisconnect:

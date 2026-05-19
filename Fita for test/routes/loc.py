@@ -23,17 +23,17 @@ guid = ["0",
         "f17a0002-0000-0000-0000-000000000002",
         "f17a0003-0000-0000-0000-000000000003",
         "f17a0004-0000-0000-0000-000000000004",
-        "f17a0005-0000-0000-0000-000000000025",
-        "f17a0005-0000-0000-0000-000000000026",
-        "f17a0005-0000-0000-0000-000000000007",
-        "f17a0005-0000-0000-0000-000000000008",
-        "f17a0005-0000-0000-0000-000000000009",
-        "f17a0005-0000-0000-0000-000000000010"]
+        "f17a0005-0000-0000-0000-000000000045",
+        "f17a0006-0000-0000-0000-000000000046",
+        "f17a0007-0000-0000-0000-000000000007",
+        "f17a0008-0000-0000-0000-000000000008",
+        "f17a0009-0000-0000-0000-000000000009",
+        "f17a0010-0000-0000-0000-000000000010"]
 
 async def fire_update(floor: list, websocket: WebSocket):
     try:
         while True:
-            await asyncio.sleep(20)
+            await asyncio.sleep(8)
             with direct_get_conn() as conn:
                 intfloor = floor[0]
                 floor[1] = fire_func.get_fire_uuid(conn, intfloor) # floor 포인터 처리
@@ -130,7 +130,7 @@ async def current_loc(websocket: WebSocket, userID: str):
         anchor = fita_svc.get_loc(conn, uuid)
         floor_ptr = [6, []]
         floor_ptr[0] = anchor.floor
-        goal = "01936d4a-5254-2da6-c01b-b3f5ee8d4ce4"
+        goal = "c17b9423-dd75-f9b7-1c10-09f99ac83b18"
         if anchor.anchorTYPE == "way":
             goal = user_goal(conn=conn, floor=anchor.floor, anchorNUM=anchor.anchorNUM)
         asyncio.create_task(fire_update(floor_ptr, websocket))

@@ -13,7 +13,7 @@ import traceback
 router = APIRouter(prefix="/fire", tags=["fire"])
 
 # 전역변수
-ignition_point = "f3001c13-91ab-da18-3f68-bca747d0584d"
+ignition_point = "a6bdd284-f666-f5ce-f1f9-8815abd820e5"
 
 # ----- 발화 지점 랜덤 지정 -----
 
@@ -27,7 +27,7 @@ async def fire_start(conn: Connection = Depends(context_get_conn)):
     #                         detail=f"Anchor {uuid} does not exist.")
     
     # sel_anchor = random.choice(anchors)
-    uuid = 'f3001c13-91ab-da18-3f68-bca747d0584d'
+    uuid = 'a6bdd284-f666-f5ce-f1f9-8815abd820e5'
     global ignition_point
     ignition_point = uuid
     await fire_wrapper(ignition_point)
